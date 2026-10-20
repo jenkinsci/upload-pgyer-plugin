@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import hudson.EnvVars;
 import hudson.Launcher;
@@ -171,5 +172,12 @@ class LegacyConfigurationTest {
         j.configRoundtrip(project);
 
         j.assertEqualDataBoundBeans(before, project.getBuildersList().get(UploadBuilderV2.class));
+    }
+
+    @Test
+    void freestyleStepsAreNotOfferedToPipeline() {
+        // Pipeline jobs use pgyerUpload; the snippet generator would otherwise offer a second, unusable step.
+        assertFalse(jenkins.tasks.SimpleBuildStep.class.isAssignableFrom(UploadBuilderV2.class));
+        assertFalse(jenkins.tasks.SimpleBuildStep.class.isAssignableFrom(UploadPublisherV2.class));
     }
 }

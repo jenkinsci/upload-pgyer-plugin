@@ -1,15 +1,15 @@
 package ren.helloworld.upload2pgyer;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.EnvVars;
+import hudson.AbortException;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
+import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
 import hudson.model.Item;
-import hudson.model.Run;
-import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.ListBoxModel;
@@ -17,7 +17,6 @@ import hudson.util.Secret;
 import io.jenkins.plugins.pgyer.Messages;
 import io.jenkins.plugins.pgyer.UploadSupport;
 import java.io.IOException;
-import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -28,9 +27,10 @@ import org.kohsuke.stapler.verb.POST;
 /**
  * "Upload to PGYER" build step for Freestyle jobs.
  *
- * <p>The class name and field names are stored in existing job configurations, so they must not change.
+ * <p>The class name and field names are stored in existing job configurations, so they must not change. It is
+ * deliberately not a {@code SimpleBuildStep}: Pipeline jobs use the {@code pgyerUpload} step instead.
  */
-public class UploadBuilderV2 extends Builder implements SimpleBuildStep {
+public class UploadBuilderV2 extends Builder {
 
     private Secret apiKey;
     private String scanDir;
@@ -158,17 +158,16 @@ public class UploadBuilderV2 extends Builder implements SimpleBuildStep {
     }
 
     @Override
-    public void perform(
-            @NonNull Run<?, ?> run,
-            @NonNull FilePath workspace,
-            @NonNull EnvVars env,
-            @NonNull Launcher launcher,
-            @NonNull TaskListener listener)
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
             throws InterruptedException, IOException {
+        FilePath workspace = build.getWorkspace();
+        if (workspace == null) {
+            throw new AbortException(Messages.Error_NoWorkspace());
+        }
         UploadSupport.perform(
-                run,
+                build,
                 workspace,
-                env,
+                build.getEnvironment(listener),
                 listener,
                 new UploadSupport.Settings(
                         apiKey,
@@ -183,6 +182,7 @@ public class UploadBuilderV2 extends Builder implements SimpleBuildStep {
                         buildChannelShortcut,
                         buildInstallStartDate,
                         buildInstallEndDate));
+        return true;
     }
 
     @Symbol("upload-pgyer-v2")
