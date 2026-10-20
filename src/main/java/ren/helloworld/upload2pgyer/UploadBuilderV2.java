@@ -1,144 +1,216 @@
 package ren.helloworld.upload2pgyer;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.AbortException;
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
+import hudson.model.Item;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
-import hudson.util.FormValidation;
+import hudson.util.ListBoxModel;
 import hudson.util.Secret;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import ren.helloworld.upload2pgyer.apiv2.ParamsBeanV2;
-import ren.helloworld.upload2pgyer.helper.PgyerV2Helper;
-
+import io.jenkins.plugins.pgyer.Messages;
+import io.jenkins.plugins.pgyer.UploadSupport;
 import java.io.IOException;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 
 /**
- * upload to jenkins
+ * "Upload to PGYER" build step for Freestyle jobs.
  *
- * @author myroid
+ * <p>The class name and field names are stored in existing job configurations, so they must not change. It is
+ * deliberately not a {@code SimpleBuildStep}: Pipeline jobs use the {@code pgyerUpload} step instead.
  */
 public class UploadBuilderV2 extends Builder {
 
-    private final Secret apiKey;
-    private final String scanDir;
-    private final String wildcard;
-    private final String buildInstallType;
-    private final Secret buildPassword;
-    private final String buildUpdateDescription;
-    private final String buildType;
-    private final String buildChannelShortcut;
-
+    private Secret apiKey;
+    private String scanDir;
+    private String wildcard;
+    private String buildType;
+    private String buildInstallType;
+    private Secret buildPassword;
+    private String buildUpdateDescription;
+    private String buildChannelShortcut;
+    // Added in 3.0
+    private String credentialsId;
+    private String buildDescription;
+    private String buildInstallStartDate;
+    private String buildInstallEndDate;
 
     @DataBoundConstructor
-    public UploadBuilderV2(String apiKey, String scanDir, String wildcard, String buildType, String buildInstallType, String buildPassword, String buildUpdateDescription, String buildChannelShortcut, String qrcodePath, String envVarsPath) {
-        this.apiKey = Secret.fromString(apiKey);
-        this.scanDir = scanDir;
-        this.wildcard = wildcard;
-        this.buildType = buildType;
-        this.buildPassword = Secret.fromString(buildPassword);
-        this.buildInstallType = buildInstallType;
-        this.buildUpdateDescription = buildUpdateDescription;
-        this.buildChannelShortcut = buildChannelShortcut;
-    }
+    public UploadBuilderV2() {}
 
     public Secret getApiKey() {
         return apiKey;
+    }
+
+    @DataBoundSetter
+    public void setApiKey(Secret apiKey) {
+        this.apiKey = UploadSupport.emptyToNull(apiKey);
     }
 
     public String getScanDir() {
         return scanDir;
     }
 
+    @DataBoundSetter
+    public void setScanDir(String scanDir) {
+        this.scanDir = Util.fixEmptyAndTrim(scanDir);
+    }
+
     public String getWildcard() {
         return wildcard;
     }
 
-    public String getBuildInstallType() {
-        return buildInstallType;
-    }
-
-    public Secret getBuildPassword() {
-        return buildPassword;
-    }
-
-    public String getBuildUpdateDescription() {
-        return buildUpdateDescription;
+    @DataBoundSetter
+    public void setWildcard(String wildcard) {
+        this.wildcard = Util.fixEmptyAndTrim(wildcard);
     }
 
     public String getBuildType() {
         return buildType;
     }
 
+    @DataBoundSetter
+    public void setBuildType(String buildType) {
+        this.buildType = Util.fixEmptyAndTrim(buildType);
+    }
+
+    public String getBuildInstallType() {
+        return buildInstallType;
+    }
+
+    @DataBoundSetter
+    public void setBuildInstallType(String buildInstallType) {
+        this.buildInstallType = Util.fixEmptyAndTrim(buildInstallType);
+    }
+
+    public Secret getBuildPassword() {
+        return buildPassword;
+    }
+
+    @DataBoundSetter
+    public void setBuildPassword(Secret buildPassword) {
+        this.buildPassword = UploadSupport.emptyToNull(buildPassword);
+    }
+
+    public String getBuildUpdateDescription() {
+        return buildUpdateDescription;
+    }
+
+    @DataBoundSetter
+    public void setBuildUpdateDescription(String buildUpdateDescription) {
+        this.buildUpdateDescription = Util.fixEmpty(buildUpdateDescription);
+    }
+
     public String getBuildChannelShortcut() {
         return buildChannelShortcut;
     }
 
+    @DataBoundSetter
+    public void setBuildChannelShortcut(String buildChannelShortcut) {
+        this.buildChannelShortcut = Util.fixEmptyAndTrim(buildChannelShortcut);
+    }
 
-    @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
-        ParamsBeanV2 paramsBeanV2 = new ParamsBeanV2();
-        paramsBeanV2.setApiKey(apiKey.getPlainText());
-        paramsBeanV2.setScandir(scanDir);
-        paramsBeanV2.setWildcard(wildcard);
-        paramsBeanV2.setBuildPassword(buildPassword.getPlainText());
-        paramsBeanV2.setBuildInstallType(buildInstallType);
-        paramsBeanV2.setBuildUpdateDescription(buildUpdateDescription);
-        paramsBeanV2.setBuildType(buildType);
-        paramsBeanV2.setBuildChannelShortcut(buildChannelShortcut);
-        return PgyerV2Helper.upload(build, listener, paramsBeanV2);
+    public String getCredentialsId() {
+        return credentialsId;
+    }
+
+    @DataBoundSetter
+    public void setCredentialsId(String credentialsId) {
+        this.credentialsId = Util.fixEmptyAndTrim(credentialsId);
+    }
+
+    public String getBuildDescription() {
+        return buildDescription;
+    }
+
+    @DataBoundSetter
+    public void setBuildDescription(String buildDescription) {
+        this.buildDescription = Util.fixEmpty(buildDescription);
+    }
+
+    public String getBuildInstallStartDate() {
+        return buildInstallStartDate;
+    }
+
+    @DataBoundSetter
+    public void setBuildInstallStartDate(String buildInstallStartDate) {
+        this.buildInstallStartDate = Util.fixEmptyAndTrim(buildInstallStartDate);
+    }
+
+    public String getBuildInstallEndDate() {
+        return buildInstallEndDate;
+    }
+
+    @DataBoundSetter
+    public void setBuildInstallEndDate(String buildInstallEndDate) {
+        this.buildInstallEndDate = Util.fixEmptyAndTrim(buildInstallEndDate);
     }
 
     @Override
-    public DescriptorImpl getDescriptor() {
-        return (DescriptorImpl) super.getDescriptor();
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
+            throws InterruptedException, IOException {
+        FilePath workspace = build.getWorkspace();
+        if (workspace == null) {
+            throw new AbortException(Messages.Error_NoWorkspace());
+        }
+        UploadSupport.perform(
+                build,
+                workspace,
+                build.getEnvironment(listener),
+                listener,
+                new UploadSupport.Settings(
+                        apiKey,
+                        credentialsId,
+                        scanDir,
+                        wildcard,
+                        buildType,
+                        buildInstallType,
+                        buildPassword,
+                        buildDescription,
+                        buildUpdateDescription,
+                        buildChannelShortcut,
+                        buildInstallStartDate,
+                        buildInstallEndDate));
+        return true;
     }
 
     @Symbol("upload-pgyer-v2")
     @Extension
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-        private String installType = "1";
 
-        public DescriptorImpl() {
-            load();
-        }
-
-        public FormValidation doCheckApiKey(@QueryParameter String value) {
-            return ValidationParameters.doCheckApiKey(value);
-        }
-
-        public FormValidation doCheckScanDir(@QueryParameter String value) {
-            return ValidationParameters.doCheckScanDir(value);
-        }
-
-        public FormValidation doCheckWildcard(@QueryParameter String value) {
-            return ValidationParameters.doCheckWildcard(value);
-        }
-
-        public FormValidation doCheckBuildType(@QueryParameter String value) {
-            return ValidationParameters.doCheckBuildType(value);
-        }
-
-        public FormValidation doCheckBuildInstallType(@QueryParameter String value) {
-            installType = value;
-            return ValidationParameters.doCheckInstallType(value);
-        }
-
-        public FormValidation doCheckBuildPassword(@QueryParameter String value) {
-            return ValidationParameters.doCheckPassword(installType, value);
-        }
-
-        public boolean isApplicable(Class<? extends AbstractProject> aClass) {
+        @Override
+        public boolean isApplicable(Class<? extends AbstractProject> jobType) {
             return true;
         }
 
+        @NonNull
+        @Override
         public String getDisplayName() {
-            return "Upload to pgyer with apiV2";
+            return Messages.UploadStep_DisplayName();
+        }
+
+        @POST
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item item, @QueryParameter String credentialsId) {
+            return UploadSupport.credentialsItems(item, credentialsId);
+        }
+
+        public ListBoxModel doFillBuildTypeItems() {
+            return UploadSupport.buildTypeItems();
+        }
+
+        public ListBoxModel doFillBuildInstallTypeItems() {
+            return UploadSupport.installTypeItems();
         }
     }
 }
-
