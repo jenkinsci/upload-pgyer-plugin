@@ -51,6 +51,18 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <!-- bouncycastle-api pulls these in through version ranges; pinning them to the versions it ships
+           avoids resolving the ranges, which fails whenever the repository metadata can't be fetched. -->
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk18on</artifactId>
+        <version>1.80</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcutil-jdk18on</artifactId>
+        <version>1.80</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
