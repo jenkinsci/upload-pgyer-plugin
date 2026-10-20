@@ -1,0 +1,38 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
+    <f:entry title="File" field="file" help="/plugin/upload-pgyer/help/file.html">
+        <f:textbox/>
+    </f:entry>
+    <f:entry title="API key" field="credentialsId" help="/plugin/upload-pgyer/help/credentialsId.html">
+        <c:select/>
+    </f:entry>
+    <f:advanced>
+        <f:entry title="Build type" field="buildType" help="/plugin/upload-pgyer/help/buildType.html">
+            <f:select/>
+        </f:entry>
+        <f:entry title="Install type" field="installType" help="/plugin/upload-pgyer/help/installType.html">
+            <f:select/>
+        </f:entry>
+        <f:entry title="Install password" field="password">
+            <f:textbox/>
+        </f:entry>
+        <f:entry title="Description" field="description" help="/plugin/upload-pgyer/help/description.html">
+            <f:textarea/>
+        </f:entry>
+        <f:entry title="Update description" field="updateDescription" help="/plugin/upload-pgyer/help/updateDescription.html">
+            <f:textarea/>
+        </f:entry>
+        <f:entry title="Channel shortcut" field="channelShortcut" help="/plugin/upload-pgyer/help/channelShortcut.html">
+            <f:textbox/>
+        </f:entry>
+        <f:entry title="Install start date" field="installStartDate" help="/plugin/upload-pgyer/help/installPeriod.html">
+            <f:textbox/>
+        </f:entry>
+        <f:entry title="Install end date" field="installEndDate" help="/plugin/upload-pgyer/help/installPeriod.html">
+            <f:textbox/>
+        </f:entry>
+        <f:entry title="Processing timeout (seconds)" field="processingTimeout" help="/plugin/upload-pgyer/help/processingTimeout.html">
+            <f:number/>
+        </f:entry>
+    </f:advanced>
+</j:jelly>

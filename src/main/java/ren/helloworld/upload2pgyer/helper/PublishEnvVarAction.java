@@ -5,6 +5,11 @@ import hudson.model.AbstractBuild;
 import hudson.model.EnvironmentContributingAction;
 import hudson.model.InvisibleAction;
 
+/**
+ * Recorded in builds made by versions before 3.0; kept so those builds still load. New builds use
+ * {@link io.jenkins.plugins.pgyer.PgyerEnvironmentAction}.
+ */
+@Deprecated
 public class PublishEnvVarAction extends InvisibleAction implements EnvironmentContributingAction {
     /**
      * The environment variable key.

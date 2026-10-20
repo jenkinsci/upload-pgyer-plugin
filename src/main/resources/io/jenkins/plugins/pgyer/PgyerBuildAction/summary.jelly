@@ -1,0 +1,12 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:t="/lib/hudson">
+    <t:summary icon="symbol-download">
+        Published to PGYER:
+        <a href="${it.downloadUrl}" target="_blank" rel="noopener noreferrer">${it.appName} ${it.version}</a>
+        <j:if test="${!empty(it.qrCodeUrl)}">
+            <div>
+                <img src="${it.qrCodeUrl}" alt="QR code for ${it.appName}" width="120" height="120"/>
+            </div>
+        </j:if>
+    </t:summary>
+</j:jelly>
