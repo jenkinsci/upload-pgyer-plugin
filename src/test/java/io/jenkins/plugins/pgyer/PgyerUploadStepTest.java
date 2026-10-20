@@ -3,6 +3,7 @@ package io.jenkins.plugins.pgyer;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -70,6 +71,7 @@ class PgyerUploadStepTest {
         assertThat(pgyer.tokenRequests.get(0), hasEntry("_api_key", "key-from-credentials"));
         assertThat(pgyer.tokenRequests.get(0), hasEntry("buildType", "android"));
         assertThat(pgyer.tokenRequests.get(0), hasEntry("buildUpdateDescription", "Build 1"));
+        assertThat(pgyer.userAgents.get(0), matchesPattern("upload-pgyer-jenkins/\\S+ Jenkins/\\S+ Java/\\S+"));
         PgyerBuildAction action = run.getAction(PgyerBuildAction.class);
         assertNotNull(action);
         assertEquals("My App", action.getAppName());

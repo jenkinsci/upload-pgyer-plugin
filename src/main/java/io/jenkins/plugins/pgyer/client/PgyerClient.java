@@ -44,6 +44,7 @@ public class PgyerClient {
     private final HttpClient http;
     private final PrintStream log;
     private Duration pollInterval = Duration.ofSeconds(3);
+    private String userAgent = "pgyer-client Java/" + System.getProperty("java.version");
 
     public PgyerClient(List<String> apiServers, ProxySettings proxy, PrintStream log) {
         this.apiServers = List.copyOf(apiServers);
@@ -70,6 +71,9 @@ public class PgyerClient {
      * Uploads {@code file} and returns the build information PGYER reports once it is published.
      */
     public Map<String, String> upload(Path file, UploadOptions options) throws IOException, InterruptedException {
+        if (options.getClient() != null) {
+            userAgent = options.getClient() + " Java/" + System.getProperty("java.version");
+        }
         Token token = requestToken(options);
         sendToCos(token, file, options);
         log.println(Messages.Log_UploadFinished());
@@ -136,6 +140,7 @@ public class PgyerClient {
                 withProgress(BodyPublishers.ofFile(file), size),
                 BodyPublishers.ofString(tail, StandardCharsets.UTF_8));
         HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(token.endpoint))
+                .header("User-Agent", userAgent)
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                 .POST(body);
         if (options.getUploadTimeout() != null) {
@@ -196,6 +201,7 @@ public class PgyerClient {
         }
         HttpRequest request = HttpRequest.newBuilder(URI.create(url))
                 .timeout(API_TIMEOUT)
+                .header("User-Agent", userAgent)
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(BodyPublishers.ofString(body.toString()))
                 .build();

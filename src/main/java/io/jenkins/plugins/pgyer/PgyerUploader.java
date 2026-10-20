@@ -4,6 +4,7 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.FilePath;
+import hudson.PluginWrapper;
 import hudson.ProxyConfiguration;
 import hudson.Util;
 import hudson.model.Run;
@@ -61,6 +62,7 @@ final class PgyerUploader {
             options.setProcessingTimeout(request.processingTimeout);
         }
         options.setUploadTimeout(uploadTimeout(env));
+        options.setClient(clientName());
 
         log.println(Messages.Log_Uploading(file.getRemote(), buildType));
         Map<String, String> result = file.act(new UploadCallable(global.apiServers(), proxy(), options, listener));
@@ -170,6 +172,13 @@ final class PgyerUploader {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    /** Lets PGYER tell uploads from this plugin, and which versions are in use, apart from other clients. */
+    private static String clientName() {
+        PluginWrapper plugin = Jenkins.get().getPluginManager().whichPlugin(PgyerUploader.class);
+        String version = plugin == null ? "unknown" : plugin.getVersion().split(" ")[0];
+        return "upload-pgyer-jenkins/" + version + " Jenkins/" + Jenkins.VERSION;
     }
 
     private static ProxySettings proxy() {

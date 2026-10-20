@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -90,6 +91,16 @@ class PgyerClientTest {
         assertThat(upload, containsString("APK-CONTENT"));
         assertThat(pgyer.buildInfoRequests, hasSize(3));
         assertThat(pgyer.buildInfoRequests.get(0), hasEntry("buildKey", FakePgyerServer.BUILD_KEY + ".apk"));
+    }
+
+    @Test
+    void identifiesTheCaller() throws Exception {
+        UploadOptions options = options();
+        options.setClient("upload-pgyer-jenkins/3.1 Jenkins/2.479.3");
+
+        client(pgyer.url()).upload(apk, options);
+
+        assertThat(pgyer.userAgents.get(0), startsWith("upload-pgyer-jenkins/3.1 Jenkins/2.479.3 Java/"));
     }
 
     @Test

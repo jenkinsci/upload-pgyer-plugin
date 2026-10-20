@@ -24,6 +24,8 @@ public class FakePgyerServer implements AutoCloseable {
 
     private final HttpServer server;
 
+    /** User-Agent headers of the getCOSToken requests. */
+    public final List<String> userAgents = new CopyOnWriteArrayList<>();
     /** Forms posted to getCOSToken. */
     public final List<Map<String, String>> tokenRequests = new CopyOnWriteArrayList<>();
     /** Raw multipart bodies posted to the storage endpoint, decoded as ISO-8859-1. */
@@ -81,6 +83,7 @@ public class FakePgyerServer implements AutoCloseable {
         if (!admit(exchange)) {
             return;
         }
+        userAgents.add(String.valueOf(exchange.getRequestHeaders().getFirst("User-Agent")));
         tokenRequests.add(form(exchange));
         if (htmlResponses) {
             respond(exchange, 200, "text/html", "<html><body>Welcome to our Wi-Fi</body></html>");

@@ -26,6 +26,7 @@ public class UploadOptions implements Serializable {
     private String fileName;
     private int processingTimeout = DEFAULT_PROCESSING_TIMEOUT;
     private Integer uploadTimeout;
+    private String client;
 
     public String getApiKey() {
         return apiKey;
@@ -105,6 +106,15 @@ public class UploadOptions implements Serializable {
     /** Seconds allowed for sending the file; {@code null} means no limit. */
     public void setUploadTimeout(Integer uploadTimeout) {
         this.uploadTimeout = uploadTimeout;
+    }
+
+    public String getClient() {
+        return client;
+    }
+
+    /** Names the caller in the User-Agent header, such as {@code upload-pgyer-jenkins/3.1 Jenkins/2.479.3}. */
+    public void setClient(String client) {
+        this.client = client;
     }
 
     Map<String, String> toTokenForm() {
