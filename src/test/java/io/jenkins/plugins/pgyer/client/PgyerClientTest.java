@@ -174,4 +174,59 @@ class PgyerClientTest {
         assertThat(e.getMessage(), containsString("still processing the build after 1 seconds"));
         assertThat(e.getMessage(), containsString(FakePgyerServer.BUILD_KEY));
     }
+
+    private PgyerClient clientVia(ProxySettings proxy, String... servers) {
+        PgyerClient client =
+                new PgyerClient(List.of(servers), proxy, new PrintStream(log, true, StandardCharsets.UTF_8));
+        client.setPollInterval(Duration.ofMillis(10));
+        return client;
+    }
+
+    @Test
+    void sendsEveryRequestThroughTheProxy() throws Exception {
+        // The fake server is the proxy; the API host never resolves, so only proxied requests can succeed.
+        ProxySettings proxy = new ProxySettings("127.0.0.1", port(), null, null, List.of());
+
+        Map<String, String> info = clientVia(proxy, "http://pgyer.invalid").upload(apk, options());
+
+        assertThat(info, hasEntry("buildKey", FakePgyerServer.BUILD_KEY));
+        assertThat(pgyer.requestTargets.get(0), is("http://pgyer.invalid/apiv2/app/getCOSToken"));
+        assertThat(pgyer.requestTargets.get(1), is(pgyer.url() + "/cos"));
+    }
+
+    @Test
+    void authenticatesWithTheProxy() throws Exception {
+        pgyer.requiredProxyCredentials = "alice:s3cret";
+        ProxySettings proxy = new ProxySettings("127.0.0.1", port(), "alice", "s3cret", List.of());
+
+        Map<String, String> info = clientVia(proxy, "http://pgyer.invalid").upload(apk, options());
+
+        assertThat(info, hasEntry("buildKey", FakePgyerServer.BUILD_KEY));
+    }
+
+    @Test
+    void connectsDirectlyToHostsExcludedFromTheProxy() throws Exception {
+        ProxySettings deadProxy = new ProxySettings(
+                "127.0.0.1", 1, null, null, List.of(java.util.regex.Pattern.compile("127\\.0\\.0\\.1")));
+
+        Map<String, String> info = clientVia(deadProxy, pgyer.url()).upload(apk, options());
+
+        assertThat(info, hasEntry("buildKey", FakePgyerServer.BUILD_KEY));
+        assertThat(pgyer.requestTargets.get(0), is("/apiv2/app/getCOSToken"));
+    }
+
+    @Test
+    void hasChineseMessages() {
+        java.util.Locale zh = java.util.Locale.SIMPLIFIED_CHINESE;
+        assertThat(Messages._Hint_Storage().toString(zh), containsString("存储空间已满"));
+        assertThat(Messages._Error_ApiError("1022").toString(zh), is("蒲公英 API 错误 1022"));
+        assertThat(
+                io.jenkins.plugins.pgyer.Messages._Error_NoFileFound("*.apk", "/ws")
+                        .toString(zh),
+                is("在 /ws 中没有找到匹配 '*.apk' 的文件"));
+    }
+
+    private int port() {
+        return java.net.URI.create(pgyer.url()).getPort();
+    }
 }

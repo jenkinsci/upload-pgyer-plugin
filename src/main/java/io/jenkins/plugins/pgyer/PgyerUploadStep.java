@@ -195,7 +195,7 @@ public class PgyerUploadStep extends Step {
             StepContext context = getContext();
             FilePath workspace = context.get(FilePath.class);
             if (workspace == null) {
-                throw new AbortException("pgyerUpload needs a workspace; call it inside a node block.");
+                throw new AbortException(Messages.PgyerUploadStep_NeedsNode());
             }
             Map<String, String> result = PgyerUploader.upload(
                     context.get(Run.class),
@@ -218,7 +218,7 @@ public class PgyerUploadStep extends Step {
         @NonNull
         @Override
         public String getDisplayName() {
-            return "Upload a build to PGYER";
+            return Messages.PgyerUploadStep_DisplayName();
         }
 
         @Override

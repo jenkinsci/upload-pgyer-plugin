@@ -1,0 +1,4 @@
+unclassified:
+  pgyer:
+    credentialsId: pgyer-api-key
+    apiServer: https://staging.example.com

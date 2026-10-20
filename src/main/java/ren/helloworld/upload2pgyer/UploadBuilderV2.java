@@ -14,6 +14,7 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
+import io.jenkins.plugins.pgyer.Messages;
 import io.jenkins.plugins.pgyer.UploadSupport;
 import java.io.IOException;
 import jenkins.tasks.SimpleBuildStep;
@@ -196,7 +197,7 @@ public class UploadBuilderV2 extends Builder implements SimpleBuildStep {
         @NonNull
         @Override
         public String getDisplayName() {
-            return "Upload to PGYER";
+            return Messages.UploadStep_DisplayName();
         }
 
         @POST

@@ -93,6 +93,6 @@ public class PgyerGlobalConfiguration extends GlobalConfiguration {
         } catch (IllegalArgumentException e) {
             // reported below
         }
-        return FormValidation.error("Enter an http:// or https:// URL, such as https://www.pgyer.com");
+        return FormValidation.error(Messages.PgyerGlobalConfiguration_InvalidApiServer());
     }
 }

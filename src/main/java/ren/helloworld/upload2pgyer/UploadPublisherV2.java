@@ -16,6 +16,7 @@ import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
+import io.jenkins.plugins.pgyer.Messages;
 import io.jenkins.plugins.pgyer.UploadSupport;
 import java.io.IOException;
 import jenkins.tasks.SimpleBuildStep;
@@ -203,7 +204,7 @@ public class UploadPublisherV2 extends Recorder implements SimpleBuildStep {
         @NonNull
         @Override
         public String getDisplayName() {
-            return "Upload to PGYER";
+            return Messages.UploadStep_DisplayName();
         }
 
         @POST

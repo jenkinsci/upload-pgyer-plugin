@@ -21,7 +21,7 @@ public class PgyerApiException extends IOException {
     }
 
     private static String format(int code, String serverMessage) {
-        StringBuilder sb = new StringBuilder("PGYER API error ").append(code);
+        StringBuilder sb = new StringBuilder(Messages.Error_ApiError(String.valueOf(code)));
         if (serverMessage != null && !serverMessage.isBlank()) {
             sb.append(": ").append(serverMessage.trim());
         }
@@ -36,15 +36,15 @@ public class PgyerApiException extends IOException {
         switch (code) {
             case 1001:
             case 1002:
-                return "Check that the API key is correct. You can find it at https://www.pgyer.com/account/api";
+                return Messages.Hint_ApiKey();
             case 1003:
-                return "Sub-accounts can't use the API. Use the API key of the main account.";
+                return Messages.Hint_SubAccount();
             case 1019:
-                return "Complete real-name verification before uploading: https://www.pgyer.com/account/certification";
+                return Messages.Hint_Certification();
             case 1020:
-                return "Uploading is disabled for this account. Contact PGYER customer service.";
+                return Messages.Hint_UploadDisabled();
             case 1022:
-                return "Your PGYER storage is full or the file is too large. Free up space or upgrade your plan.";
+                return Messages.Hint_Storage();
             default:
                 return null;
         }

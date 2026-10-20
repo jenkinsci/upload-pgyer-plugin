@@ -52,7 +52,7 @@ final class PgyerUploader {
         String start = expand(env, request.installStartDate);
         String end = expand(env, request.installEndDate);
         if ((start == null) != (end == null)) {
-            throw new AbortException("Set both the install start date and end date, or neither.");
+            throw new AbortException(Messages.Error_InstallPeriodIncomplete());
         }
         options.setInstallPeriod(start, end);
         options.setOversea(request.oversea);
@@ -62,16 +62,15 @@ final class PgyerUploader {
         }
         options.setUploadTimeout(uploadTimeout(env));
 
-        log.println("[PGYER] Uploading " + file.getRemote() + " (" + buildType + ")");
+        log.println(Messages.Log_Uploading(file.getRemote(), buildType));
         Map<String, String> result = file.act(new UploadCallable(global.apiServers(), proxy(), options, listener));
 
         addLinks(result, global.webServer());
-        log.println("[PGYER] Published " + result.getOrDefault("buildName", "") + " "
-                + result.getOrDefault("buildVersion", "") + " (build " + result.getOrDefault("buildBuildVersion", "")
-                + ")");
-        log.println("[PGYER] Download page: " + result.get("appPgyerURL"));
-        log.println("[PGYER] QR code: " + result.get("buildQRCodeURL"));
-        run.addAction(new PgyerBuildAction(result));
+        PgyerBuildAction action = new PgyerBuildAction(result);
+        log.println(Messages.Log_Published(action.getAppName(), action.getVersion()));
+        log.println(Messages.Log_DownloadPage(result.get("appPgyerURL")));
+        log.println(Messages.Log_QrCode(result.get("buildQRCodeURL")));
+        run.addAction(action);
         return result;
     }
 
@@ -87,12 +86,12 @@ final class PgyerUploader {
             // An empty workspace may not exist yet; that is the same as finding no file.
             throw new AbortException(
                     dir == null
-                            ? "No file matching '" + pattern + "' found in " + base.getRemote()
-                            : "Directory not found: " + base.getRemote());
+                            ? Messages.Error_NoFileFound(pattern, base.getRemote())
+                            : Messages.Error_DirectoryNotFound(base.getRemote()));
         }
         FilePath[] matches = base.list(pattern);
         if (matches.length == 0) {
-            throw new AbortException("No file matching '" + pattern + "' found in " + base.getRemote());
+            throw new AbortException(Messages.Error_NoFileFound(pattern, base.getRemote()));
         }
         if (matches.length == 1) {
             return matches[0];
@@ -105,7 +104,7 @@ final class PgyerUploader {
         Integer[] order = new Integer[matches.length];
         Arrays.setAll(order, i -> i);
         Arrays.sort(order, Comparator.comparingLong((Integer i) -> modified[i]).reversed());
-        log.println("[PGYER] " + matches.length + " files match '" + pattern + "'; uploading the newest one.");
+        log.println(Messages.Log_ManyMatches(String.valueOf(matches.length), pattern));
         return matches[order[0]];
     }
 
@@ -122,8 +121,7 @@ final class PgyerUploader {
         }
         String type = Util.fixEmptyAndTrim(configured);
         if (type == null) {
-            throw new AbortException("Can't tell the build type of " + fileName
-                    + ". Upload an .apk, .ipa or .hap file, or set the build type.");
+            throw new AbortException(Messages.Error_UnknownBuildType(fileName));
         }
         return type.toLowerCase(Locale.ROOT);
     }
@@ -147,16 +145,14 @@ final class PgyerUploader {
         if (global.getCredentialsId() != null) {
             return secretText(run, global.getCredentialsId());
         }
-        throw new AbortException("No PGYER API key. Choose a Secret text credential in the job, set " + API_KEY_VARIABLE
-                + ", or set a default under Manage Jenkins » System » PGYER.");
+        throw new AbortException(Messages.Error_NoApiKey(API_KEY_VARIABLE));
     }
 
     private static String secretText(Run<?, ?> run, String credentialsId) throws AbortException {
         StringCredentials credentials =
                 CredentialsProvider.findCredentialById(credentialsId, StringCredentials.class, run);
         if (credentials == null) {
-            throw new AbortException(
-                    "Credentials '" + credentialsId + "' not found, or it isn't a Secret text credential.");
+            throw new AbortException(Messages.Error_CredentialsNotFound(credentialsId));
         }
         CredentialsProvider.track(run, credentials);
         return credentials.getSecret().getPlainText();

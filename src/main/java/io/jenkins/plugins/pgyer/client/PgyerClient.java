@@ -72,7 +72,7 @@ public class PgyerClient {
     public Map<String, String> upload(Path file, UploadOptions options) throws IOException, InterruptedException {
         Token token = requestToken(options);
         sendToCos(token, file, options);
-        log.println("[PGYER] Upload finished. Waiting for PGYER to process the build...");
+        log.println(Messages.Log_UploadFinished());
         return waitForBuild(token.server, options.getApiKey(), token.key, options.getProcessingTimeout());
     }
 
@@ -84,8 +84,7 @@ public class PgyerClient {
             try {
                 json = postForm(server + "/apiv2/app/getCOSToken", form);
             } catch (IOException e) {
-                log.println(
-                        "[PGYER] " + server + " is not reachable (" + e.getMessage() + "), trying the next server.");
+                log.println(Messages.Log_Unreachable(server, e.getMessage()));
                 lastFailure = e;
                 continue;
             }
@@ -94,7 +93,7 @@ public class PgyerClient {
             String endpoint = data.optString("endpoint", "");
             String key = data.optString("key", "");
             if (params == null || params.isNullObject() || endpoint.isEmpty() || key.isEmpty()) {
-                throw new IOException("PGYER returned an incomplete upload token: " + json);
+                throw new IOException(Messages.Error_IncompleteToken(json));
             }
             return new Token(server, endpoint, key, flatten(params));
         }
@@ -143,11 +142,11 @@ public class PgyerClient {
             request.timeout(Duration.ofSeconds(options.getUploadTimeout()));
         }
 
-        log.println("[PGYER] Uploading " + file.getFileName() + " (" + humanSize(size) + ")...");
+        log.println(Messages.Log_Uploading(String.valueOf(file.getFileName()), humanSize(size)));
         HttpResponse<String> response = http.send(request.build(), HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() / 100 != 2) {
-            throw new IOException("Uploading the file to storage failed with HTTP " + response.statusCode() + ": "
-                    + abbreviate(response.body()));
+            throw new IOException(Messages.Error_StorageUploadFailed(
+                    String.valueOf(response.statusCode()), abbreviate(response.body())));
         }
     }
 
@@ -165,7 +164,7 @@ public class PgyerClient {
             } catch (IOException e) {
                 // The file is already uploaded, so keep polling through short network problems.
                 if (!reportedNetworkError) {
-                    log.println("[PGYER] Checking the build status failed (" + e.getMessage() + "), retrying...");
+                    log.println(Messages.Log_StatusRetry(e.getMessage()));
                     reportedNetworkError = true;
                 }
             }
@@ -179,8 +178,7 @@ public class PgyerClient {
                 }
             }
             if (System.nanoTime() > deadline) {
-                throw new IOException("PGYER is still processing the build after " + timeoutSeconds
-                        + " seconds. It may still be published; check your PGYER app list. Build key: " + buildKey);
+                throw new IOException(Messages.Error_ProcessingTimeout(String.valueOf(timeoutSeconds), buildKey));
             }
             Thread.sleep(pollInterval.toMillis());
         }
@@ -205,12 +203,12 @@ public class PgyerClient {
         try {
             JSONObject json = JSONObject.fromObject(response.body());
             if (!json.has("code")) {
-                throw new IOException("unexpected response: " + abbreviate(response.body()));
+                throw new IOException(Messages.Error_UnexpectedResponse(abbreviate(response.body())));
             }
             return json;
         } catch (JSONException e) {
             // Usually a captive portal, a hijacked DNS record or a proxy error page.
-            throw new IOException("HTTP " + response.statusCode() + " with a non-JSON response", e);
+            throw new IOException(Messages.Error_NonJsonResponse(String.valueOf(response.statusCode())), e);
         }
     }
 
@@ -251,7 +249,7 @@ public class PgyerClient {
                         long tenth = size == 0 ? 10 : total * 10 / size;
                         if (tenth > lastReported.get()) {
                             lastReported.set(tenth);
-                            log.println("[PGYER] Uploaded " + tenth * 10 + "% (" + humanSize(total) + ")");
+                            log.println(Messages.Log_Progress(String.valueOf(tenth * 10), humanSize(total)));
                         }
                         subscriber.onNext(item);
                     }

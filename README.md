@@ -1,94 +1,137 @@
-[![license](https://img.shields.io/github/license/mashape/apistatus.svg)](http://opensource.org/licenses/MIT)
-![Jenkins Plugins](https://img.shields.io/jenkins/plugin/v/upload-pgyer)
-![Jenkins Plugin installs](https://img.shields.io/jenkins/plugin/i/upload-pgyer)
+# Upload to PGYER
 
-### A simple introduction
+[![Jenkins Plugin](https://img.shields.io/jenkins/plugin/v/upload-pgyer.svg)](https://plugins.jenkins.io/upload-pgyer)
+[![Jenkins Plugin Installs](https://img.shields.io/jenkins/plugin/i/upload-pgyer.svg?color=blue)](https://plugins.jenkins.io/upload-pgyer)
 
-[中文文档](./README_cn.md)
+[中文文档](README_cn.md)
 
-[蒲公英官网文档](https://www.pgyer.com/doc/view/jenkins_plugin)
+Upload Android (`.apk`), iOS (`.ipa`) and HarmonyOS (`.hap`) builds to [PGYER](https://www.pgyer.com) for beta
+distribution, from Pipeline or Freestyle jobs. Maintained by PGYER.
 
-Pgyer can upload the application to the site, generate installation link and qr code user to open the installation link, or scan code qr code, can start installation.
+- Uploads from the agent that built the app; nothing is copied to the controller.
+- Waits until PGYER has published the build, then returns its download page and QR code.
+- Keeps the API key in Jenkins credentials and out of the build log.
+- Uses Jenkins' proxy settings, and falls back to PGYER's backup domains when `www.pgyer.com` is unreachable.
 
-### Install plugin
+Requires Jenkins 2.479.3 or newer.
 
-- Recommend
+## Set up
 
-    `Manage Jenkins`  ->  `Manage Plugins`  ->  `Available`  ->  `Search `  -> *enter* `Upload to pgyer`  -> `install`
+1. Copy your API key from <https://www.pgyer.com/account/api>.
+2. In Jenkins, add a **Secret text** credential holding the key, for example with the ID `pgyer-api-key`.
+3. Optionally, choose it as the default under **Manage Jenkins » System » PGYER**, so jobs don't have to name it.
 
-- Alternate
+## Pipeline
 
-    1. Click [here](https://updates.jenkins-ci.org/latest/upload-pgyer.hpi) to download the latest version
+```groovy
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps {
+                sh './gradlew assembleRelease'
+            }
+        }
+        stage('Distribute') {
+            steps {
+                script {
+                    def app = pgyerUpload file: 'app/build/outputs/apk/release/*.apk',
+                                          credentialsId: 'pgyer-api-key',
+                                          updateDescription: "Build ${env.BUILD_NUMBER}"
+                    echo "Download page: ${app.appPgyerURL}"
+                    echo "QR code: ${app.buildQRCodeURL}"
+                }
+            }
+        }
+    }
+}
+```
 
-    2. `Manage Jenkins`  ->  `Manage Plugins`  ->  `Advanced`  ->  `Upload Plugin`  ->  `Choose file`  ->  *choose* `upload-pgyer.hpi`  ->  `Upload`
+The key can also come from the `PGYER_API_KEY` environment variable:
 
-### Build parameters
+```groovy
+withCredentials([string(credentialsId: 'pgyer-api-key', variable: 'PGYER_API_KEY')]) {
+    pgyerUpload file: 'build/*.ipa'
+}
+```
 
-In version 2.1 removed the two build parameters, respectively `isUploadPgyer` and `uploadPgyerTimeout`, changing the build parameter `buildName` to `buildType`, and `buildType` to be required
-### User's guidance
-So this plugin can be uploaded to the pgyer platform！**And it can put the fields returned by pgyer into an environment variable, which you can use in other build steps**, You can select `upload to pgyer` by adding build steps or adding post-build steps.
+### Parameters
 
-![](./images/setting-screenshot.png)
+| Parameter | Description |
+|---|---|
+| `file` | Ant-style pattern relative to the workspace. Defaults to any `.apk`, `.ipa` or `.hap` file. If several match, the most recently modified one is uploaded. |
+| `credentialsId` | Secret text credential with the API key. Defaults to `PGYER_API_KEY`, then to the global default. |
+| `buildType` | `android`, `ios` or `harmony`. Only needed when the file extension is not `.apk`, `.ipa` or `.hap`. |
+| `installType` | `1` public, `2` password, `3` invitation only. Keeps the current setting of the app when not set. |
+| `password` | Install password, used with `installType: '2'`. |
+| `description` | Description of the app. |
+| `updateDescription` | What changed in this build. |
+| `channelShortcut` | Short URL of the download channel to publish to. |
+| `installStartDate`, `installEndDate` | Limit installs to a date range, as `yyyy-MM-dd`. Set both or neither. |
+| `oversea` | `true` to upload through overseas acceleration, `false` for mainland China. Chosen by IP address when not set. |
+| `processingTimeout` | Seconds to wait for PGYER to publish the build after the upload. Default `600`. |
 
-### Introduction to parameters
-field|explanation
-----:|:----------
-pgyer api_key|`(Required)` API Key, used to identify the identity of the API caller, <br/>if not specified, each interface needs to contain this parameter.<br/>For the same pgyer registered users, this value is fixed.<br/>[Click to get pgyer api_key](https://www.pgyer.com/account/api)
-scandir|`(Required)` Need to upload ipa or apk file base dir path!<br/>  The default is ${WORKSPACE}, It means the path of the current project!<br/>It is using ant's DirectoryScanner class, [click to see DirectoryScanner class](https://ant.apache.org/manual/api/org/apache/tools/ant/DirectoryScanner.html)<br/>**It is equivalent to the parameters of the basedir method in the DirectoryScanner class!** [click to see basedir method](https://ant.apache.org/manual/api/org/apache/tools/ant/DirectoryScanner.html#basedir)
-file wildcard|`(Required)` Need to upload ipa or apk file name, Support wildcards,<br/>like this: \*\*/\*.apk<br/>like this: \*\*/Test?/\*_sign.apk<br/>It is using ant's DirectoryScanner class, [click to see DirectoryScanner class](https://ant.apache.org/manual/api/org/apache/tools/ant/DirectoryScanner.html)<br/> **It is equivalent to the parameters of the includes method in the DirectoryScanner class!** [click to see includes method](https://ant.apache.org/manual/api/org/apache/tools/ant/DirectoryScanner.html#includes)
-buildType|`(Required)` Need to upload app type, Support buildType,<br/>like this: android<br/>like this: ios<br/>The default: android!
-installType|`(Optional)` Application installation, the value is (1,2,3).<br/>1: public, <br/>2: password installed, <br/>3: invitation to install.<br/>The default is 1 public!
-password|(Optional) Set the App installation password, if you do not want to set the password, please pass empty string, or not pass.
-updateDescription|`(Optional)` Version update description, please pass empty string, or not pass.
-channelShortcut|`(Optional)` The download short link of the specified channel that needs to be updated, only one channel can be specified, string type, such as: abcd.
+### Return value
 
-### Running log
-![](./images/pgyer-app-upload-running-log.png)
+`pgyerUpload` returns a map with everything PGYER reports about the published build, including:
 
-When it runs successfully, you can use the environment variables that are used! for example:
+| Key | Example |
+|---|---|
+| `buildName`, `buildVersion`, `buildBuildVersion` | `My App`, `1.2.0`, `7` |
+| `buildKey`, `buildShortcutUrl` | `a1b2c3...`, `myapp` |
+| `appPgyerURL` | `https://www.pgyer.com/myapp` |
+| `buildQRCodeURL` | URL of the QR code image |
 
-![](./images/pgyer-app-upload-backdata.png)
+The build page also shows the download link and QR code.
 
-### Change Log
-Version 2.1(2022-10-26)
+## Freestyle jobs
 
-- **Minimum Jenkins requirement: [2.277.1](http://mirrors.jenkins.io/war-stable/2.277.1)**
-- Example Remove configurations related to apiv1
-- removed `isUploadPgyer` build parameter
-- removed `uploadPgyerTimeout` build parameter
-- removed `buildName` build parameter
-- add `buildType` build parameter (required)
-- api changes
-- Upgrade Gson 2.9.0
-- Upgrade OkHttp3 4.10.0
-- Optimize code to improve stability
+Add the **Upload to PGYER** build step or post-build action. As a post-build action it doesn't upload when the build
+failed.
 
-Version 1.34(2020-08-15)
+After the upload, later build steps can use these environment variables: `buildShortcutUrl`, `appPgyerURL`,
+`buildQRCodeURL`, `appQRCodeURL`, `buildKey`, `buildName`, `buildVersion` and the other fields of the return value.
 
-- **Minimum Jenkins requirement: [2.164.1](http://mirrors.jenkins.io/war-stable/2.164.1)**
-- Add `isUploadPgyer` build parameter
-- Add `uploadPgyerTimeout` build parameter
-- Upgrade pgyer api, add `channelShortcut` parameter
-- Change the default value of `installType` to 1
-- Optimize parameters verification
-- Upgrade Gson 2.8.6
-- Upgrade Ant 1.10.8
-- Upgrade OkHttp3 3.14.9
-- Optimize code to improve stability
+Set the job parameter `isUploadPgyer` to `false` to skip the upload.
 
-Version 1.33(2019-09-07)
+## Configuration as Code
 
-- Fixed [SECURITY-1044](https://issues.jenkins-ci.org/browse/SECURITY-1044)
-- Upgrade gson 2.8.5
+```yaml
+unclassified:
+  pgyer:
+    credentialsId: pgyer-api-key
+```
 
-Version 1.31(2018-05-07)
+## Upgrading from 2.x
 
-- Upgrade gson 2.8.4
-- Optimize upload log
-- Change the document image address.
+Jobs configured with 2.x keep working without changes, including the environment variables they set and the
+`isUploadPgyer` and `uploadPgyerTimeout` variables they read. What changes:
 
-Version 1.30(2018-04-16）
+- Builds on agents work: the file is now read and uploaded on the agent.
+- The plugin waits up to 10 minutes for PGYER to publish the build, instead of about 15 seconds.
+- The API key typed into a 2.x job is still used, but marked as deprecated. Move it to a Secret text credential
+  and choose that credential in the job.
+- Pipeline jobs use the new `pgyerUpload` step.
 
-- Remove jsoup, and import okhttp that be used network
-- Add upload file progress
-- Add [pgyer api v2](https://www.pgyer.com/doc/view/api#uploadApp)
+## Troubleshooting
+
+| Error | What to do |
+|---|---|
+| `1001`, `1002` | The API key is missing or wrong. Check it at <https://www.pgyer.com/account/api>. |
+| `1003` | Sub-accounts can't use the API. Use the API key of the main account. |
+| `1019` | Complete real-name verification at <https://www.pgyer.com/account/certification>. |
+| `1020` | Uploading is disabled for this account. Contact PGYER customer service. |
+| `1022` | The account storage is full or the file is too large. Free up space or upgrade your plan. |
+| `still processing the build after 600 seconds` | The upload finished but publishing took longer than `processingTimeout`. The build may still appear in your PGYER app list; raise the timeout if this happens often. |
+| `None of the PGYER API servers could be reached` | The agent can't reach `www.pgyer.com`, `www.xcxwo.com` or `www.pgyerapp.com`. Check its network and the proxy under **Manage Jenkins » System » HTTP Proxy Configuration**. |
+
+The upload uses the proxy configured in Jenkins. Java doesn't send Basic credentials when tunnelling HTTPS through a
+proxy unless the agent JVM is started with `-Djdk.http.auth.tunneling.disabledSchemes=""`.
+
+## Reporting issues
+
+Report bugs and feature requests at <https://github.com/jenkinsci/upload-pgyer-plugin/issues>.
+
+## License
+
+[MIT](LICENSE)

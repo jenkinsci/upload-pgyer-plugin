@@ -1,42 +1,42 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
-    <f:entry title="API key" field="credentialsId" help="/plugin/upload-pgyer/help/credentialsId.html">
+    <f:entry title="${%API key}" field="credentialsId" help="/descriptor/io.jenkins.plugins.pgyer.PgyerUploadStep/help/credentialsId">
         <c:select/>
     </f:entry>
     <j:if test="${instance.apiKey != null}">
-        <f:entry title="API key (deprecated)" field="apiKey" help="/plugin/upload-pgyer/help/apiKey.html">
+        <f:entry title="${%Deprecated API key}" field="apiKey" help="/descriptor/io.jenkins.plugins.pgyer.PgyerUploadStep/help/apiKey">
             <f:password/>
         </f:entry>
     </j:if>
-    <f:entry title="Directory" field="scanDir" help="/plugin/upload-pgyer/help/scanDir.html">
+    <f:entry title="${%Directory}" field="scanDir" help="/descriptor/io.jenkins.plugins.pgyer.PgyerUploadStep/help/scanDir">
         <f:textbox default="$${WORKSPACE}"/>
     </f:entry>
-    <f:entry title="File" field="wildcard" help="/plugin/upload-pgyer/help/wildcard.html">
+    <f:entry title="${%File}" field="wildcard" help="/descriptor/io.jenkins.plugins.pgyer.PgyerUploadStep/help/wildcard">
         <f:textbox/>
     </f:entry>
-    <f:entry title="Build type" field="buildType" help="/plugin/upload-pgyer/help/buildType.html">
+    <f:entry title="${%Build type}" field="buildType" help="/descriptor/io.jenkins.plugins.pgyer.PgyerUploadStep/help/buildType">
         <f:select/>
     </f:entry>
     <f:advanced>
-        <f:entry title="Install type" field="buildInstallType" help="/plugin/upload-pgyer/help/installType.html">
+        <f:entry title="${%Install type}" field="buildInstallType" help="/descriptor/io.jenkins.plugins.pgyer.PgyerUploadStep/help/installType">
             <f:select/>
         </f:entry>
-        <f:entry title="Install password" field="buildPassword">
+        <f:entry title="${%Install password}" field="buildPassword">
             <f:password/>
         </f:entry>
-        <f:entry title="Description" field="buildDescription" help="/plugin/upload-pgyer/help/description.html">
+        <f:entry title="${%Description}" field="buildDescription" help="/descriptor/io.jenkins.plugins.pgyer.PgyerUploadStep/help/description">
             <f:textarea/>
         </f:entry>
-        <f:entry title="Update description" field="buildUpdateDescription" help="/plugin/upload-pgyer/help/updateDescription.html">
+        <f:entry title="${%Update description}" field="buildUpdateDescription" help="/descriptor/io.jenkins.plugins.pgyer.PgyerUploadStep/help/updateDescription">
             <f:textarea/>
         </f:entry>
-        <f:entry title="Channel shortcut" field="buildChannelShortcut" help="/plugin/upload-pgyer/help/channelShortcut.html">
+        <f:entry title="${%Channel shortcut}" field="buildChannelShortcut" help="/descriptor/io.jenkins.plugins.pgyer.PgyerUploadStep/help/channelShortcut">
             <f:textbox/>
         </f:entry>
-        <f:entry title="Install start date" field="buildInstallStartDate" help="/plugin/upload-pgyer/help/installPeriod.html">
+        <f:entry title="${%Install start date}" field="buildInstallStartDate" help="/descriptor/io.jenkins.plugins.pgyer.PgyerUploadStep/help/installPeriod">
             <f:textbox/>
         </f:entry>
-        <f:entry title="Install end date" field="buildInstallEndDate" help="/plugin/upload-pgyer/help/installPeriod.html">
+        <f:entry title="${%Install end date}" field="buildInstallEndDate" help="/descriptor/io.jenkins.plugins.pgyer.PgyerUploadStep/help/installPeriod">
             <f:textbox/>
         </f:entry>
     </f:advanced>

@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,11 @@ public class FakePgyerServer implements AutoCloseable {
     /** When true, getCOSToken answers with an HTML page, as a hijacked DNS record would. */
     public volatile boolean htmlResponses;
 
+    /** Request targets as received; requests sent through a proxy use the absolute form, {@code http://host/...}. */
+    public final List<String> requestTargets = new CopyOnWriteArrayList<>();
+    /** When set, every request must carry this {@code user:password} as Basic proxy credentials. */
+    public volatile String requiredProxyCredentials;
+
     private final AtomicInteger polls = new AtomicInteger();
 
     public FakePgyerServer() throws IOException {
@@ -53,7 +59,28 @@ public class FakePgyerServer implements AutoCloseable {
         return "http://127.0.0.1:" + server.getAddress().getPort();
     }
 
+    /** Records the request and answers 407 when proxy credentials are required but missing. */
+    private boolean admit(HttpExchange exchange) throws IOException {
+        requestTargets.add(exchange.getRequestURI().toString());
+        String required = requiredProxyCredentials;
+        if (required == null) {
+            return true;
+        }
+        String expected = "Basic " + Base64.getEncoder().encodeToString(required.getBytes(StandardCharsets.UTF_8));
+        if (expected.equals(exchange.getRequestHeaders().getFirst("Proxy-Authorization"))) {
+            return true;
+        }
+        exchange.getRequestBody().readAllBytes();
+        exchange.getResponseHeaders().set("Proxy-Authenticate", "Basic realm=\"proxy\"");
+        exchange.sendResponseHeaders(407, -1);
+        exchange.close();
+        return false;
+    }
+
     private void token(HttpExchange exchange) throws IOException {
+        if (!admit(exchange)) {
+            return;
+        }
         tokenRequests.add(form(exchange));
         if (htmlResponses) {
             respond(exchange, 200, "text/html", "<html><body>Welcome to our Wi-Fi</body></html>");
@@ -78,12 +105,18 @@ public class FakePgyerServer implements AutoCloseable {
     }
 
     private void cos(HttpExchange exchange) throws IOException {
+        if (!admit(exchange)) {
+            return;
+        }
         uploads.add(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.ISO_8859_1));
         exchange.sendResponseHeaders(204, -1);
         exchange.close();
     }
 
     private void buildInfo(HttpExchange exchange) throws IOException {
+        if (!admit(exchange)) {
+            return;
+        }
         buildInfoRequests.add(form(exchange));
         if (buildInfoError != null) {
             respond(

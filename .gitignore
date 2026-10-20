@@ -4,3 +4,5 @@ target
 *.iml
 pom.xml.releaseBackup
 release.properties
+# Jenkins home used by mvn hpi:run
+work

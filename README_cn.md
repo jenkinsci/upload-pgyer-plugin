@@ -1,97 +1,132 @@
-[![license](https://img.shields.io/github/license/mashape/apistatus.svg)](http://opensource.org/licenses/MIT)
-![Jenkins Plugins](https://img.shields.io/jenkins/plugin/v/upload-pgyer)
-![Jenkins Plugin installs](https://img.shields.io/jenkins/plugin/i/upload-pgyer)
+# 上传到蒲公英（Upload to PGYER）
 
-### 简单介绍
+[English](README.md)
 
-[蒲公英官网文档](https://www.pgyer.com/doc/view/jenkins_plugin)
+在 Jenkins 的 Pipeline 或自由风格任务中，把 Android（`.apk`）、iOS（`.ipa`）和鸿蒙（`.hap`）安装包上传到
+[蒲公英](https://www.pgyer.com) 进行内测分发。本插件由蒲公英官方维护。
 
-蒲公英平台可以让开发者和企业将应用上传到网站，生成安装链接和二维码用户在手机上打开安装链接，或扫码二维码，即可开始安装！
+- 直接在构建应用的 agent 上上传，不会把安装包复制到 Jenkins 主节点。
+- 等蒲公英发布完成后，返回下载页地址和二维码。
+- API Key 保存在 Jenkins 凭据中，不会出现在构建日志里。
+- 使用 Jenkins 的代理设置；`www.pgyer.com` 无法访问时自动改用蒲公英的备用域名。
 
-因此，这款upload-pgyer的Jenkins插件可以让开发者将apk/ipa文件上传到蒲公英平台！**并且这款插件可以将蒲公英平台返回的应用信息解析后注入到Jenkins的全局变量中，这样你就可以很方便的在其他构建步骤中使用这些返回的信息**。
+需要 Jenkins 2.479.3 或更新版本。
 
-### 安装插件
+## 准备
 
-- 推荐的安装方式
+1. 在 <https://www.pgyer.com/account/api> 复制你的 API Key。
+2. 在 Jenkins 中添加一个“Secret text”类型的凭据保存这个 Key，例如 ID 设为 `pgyer-api-key`。
+3. 可选：在“系统管理 » 系统配置 » PGYER”中把它设为默认 Key，这样任务里就不用再指定。
 
-    `Manage Jenkins`  ->  `Manage Plugins`  ->  `Available`  ->  `Search `  -> *输入* `Upload to pgyer`  -> `install`
+## Pipeline
 
-- 备用的安装方式
+```groovy
+pipeline {
+    agent any
+    stages {
+        stage('构建') {
+            steps {
+                sh './gradlew assembleRelease'
+            }
+        }
+        stage('分发') {
+            steps {
+                script {
+                    def app = pgyerUpload file: 'app/build/outputs/apk/release/*.apk',
+                                          credentialsId: 'pgyer-api-key',
+                                          updateDescription: "Build ${env.BUILD_NUMBER}"
+                    echo "下载页：${app.appPgyerURL}"
+                    echo "二维码：${app.buildQRCodeURL}"
+                }
+            }
+        }
+    }
+}
+```
 
-    1. 点击 [这里](https://updates.jenkins-ci.org/latest/upload-pgyer.hpi) 下载最新的版本
+也可以通过环境变量 `PGYER_API_KEY` 提供 Key：
 
-    2. `Manage Jenkins`  ->  `Manage Plugins`  ->  `Advanced`  ->  `Upload Plugin`  ->  `Choose file`  ->  *选择刚才下载的* `upload-pgyer.hpi`  ->  `Upload`
+```groovy
+withCredentials([string(credentialsId: 'pgyer-api-key', variable: 'PGYER_API_KEY')]) {
+    pgyerUpload file: 'build/*.ipa'
+}
+```
 
-### 构建参数
+### 参数
 
-在2.1版本中删除了两个构建参数，分别是`isUploadPgyer`和`uploadPgyerTimeout`，将构建参数`buildName`更改为`buildType`并且`buildType`为必填项
-### 使用指南
+| 参数 | 说明 |
+|---|---|
+| `file` | 相对于工作空间的 Ant 风格路径模式。默认匹配任意 `.apk`、`.ipa` 或 `.hap` 文件；匹配到多个时上传最近修改的那个。 |
+| `credentialsId` | 保存 API Key 的“Secret text”凭据。不填时依次使用 `PGYER_API_KEY` 环境变量、系统默认 Key。 |
+| `buildType` | `android`、`ios` 或 `harmony`。只有文件扩展名不是 `.apk`、`.ipa`、`.hap` 时才需要。 |
+| `installType` | `1` 公开安装，`2` 密码安装，`3` 邀请安装。不填时保持应用当前的设置。 |
+| `password` | 安装密码，配合 `installType: '2'` 使用。 |
+| `description` | 应用描述。 |
+| `updateDescription` | 本次版本的更新说明。 |
+| `channelShortcut` | 要发布到的渠道短链接。 |
+| `installStartDate`、`installEndDate` | 安装有效期，格式 `yyyy-MM-dd`，两个要同时填写。 |
+| `oversea` | `true` 使用海外加速上传，`false` 使用国内上传。不填时按 IP 自动判断。 |
+| `processingTimeout` | 上传完成后等待蒲公英发布的最长时间（秒），默认 `600`。 |
 
-你可以在Jenkins的job配置页面的`构建`和`构建后操作`这两个操作中点击添加构建步骤选择`upload to pgyer with apiV2`。然后你就可以看到类似下面图片的操作界面：
+### 返回值
 
+`pgyerUpload` 返回一个 Map，包含蒲公英返回的全部版本信息，常用的有：
 
-![](./images/setting-screenshot.png)
+| 键 | 示例 |
+|---|---|
+| `buildName`、`buildVersion`、`buildBuildVersion` | `My App`、`1.2.0`、`7` |
+| `buildKey`、`buildShortcutUrl` | `a1b2c3...`、`myapp` |
+| `appPgyerURL` | `https://www.pgyer.com/myapp` |
+| `buildQRCodeURL` | 二维码图片地址 |
 
-### 参数介绍
-需要填写的字段|字段的解释
-----:|:----------
-pgyer api_key|(必填) API Key，用来识别API调用者的身份，<br/>如不特别说明，每个接口中都需要含有此参数。<br/>对于同一个蒲公英的注册用户来说，这个值在固定的。<br/>[点击获取_api_key](https://www.pgyer.com/account/api)
-scandir|`(必填)` 需要上传的apk/ipa文件所在的文件夹或者父文件夹，<br/>当前默认路径是`${WORKSPACE}`，它代表了当前项目的绝对路径。<br/>这个功能的实现使用了ant框架的DirectoryScanner类，[点击查看DirectoryScanner类](https://ant.apache.org/manual/api/org/apache/tools/ant/DirectoryScanner.html)，<br/>这个字段就是DirectoryScanner类中的basedir方法的参数[点击查看basedir方法](https://ant.apache.org/manual/api/org/apache/tools/ant/DirectoryScanner.html#basedir)
-file wildcard|`(必填)` 需要上传的apk/ipa文件的名字，支持通配符，<br/>就像这样: \*\*/\*.apk<br/>或者像这样： \*\*/Test?/\*_sign.apk，<br/>这个功能的实现使用了ant框架的DirectoryScanner类，[点击查看DirectoryScanner类](https://ant.apache.org/manual/api/org/apache/tools/ant/DirectoryScanner.html)，<br/>这个字段就是DirectoryScanner类中的includes方法的参数，[点击查看includes方法](https://ant.apache.org/manual/api/org/apache/tools/ant/DirectoryScanner.html#includes)
-buildType|`(必填)` 需要上传应用程序类型，支持,<br/>如: android<br/>如: ios<br/>默认值是: android
-installType|`(选填)` 应用安装方式，值为(1,2,3)。<br/>1：公开，2：密码安装，3：邀请安装。<br/>默认为1公开
-password|`(选填)` 设置App安装密码，如果不想设置密码，请传空字符串，或不传。
-updateDescription|`(选填)` 版本更新描述，请传空字符串，或不传。
-channelShortcut|`(选填)` 所需更新的指定渠道的下载短链接，只可指定一个渠道，字符串型，如：abcd
+构建页面上也会显示下载链接和二维码。
 
-### 运行截图
-![](./images/pgyer-app-upload-running-log.png)
+## 自由风格任务
 
-当你的应用上传成功后，在Jenkins中你就能看到上面图片中的信息。同时，你就可以在其他构建步骤中使用蒲公英返回来的信息，例如我的经验：
+添加“上传到蒲公英（PGYER）”构建步骤或构建后操作。作为构建后操作时，构建失败不会上传。
 
-![](./images/pgyer-app-upload-backdata.png)
+上传完成后，后续的构建步骤可以使用这些环境变量：`buildShortcutUrl`、`appPgyerURL`、`buildQRCodeURL`、
+`appQRCodeURL`、`buildKey`、`buildName`、`buildVersion`，以及返回值中的其他字段。
 
-### Change Log
+把任务参数 `isUploadPgyer` 设为 `false` 可以跳过上传。
 
-版本 2.1(2022-10-26)
-- **最低兼容Jenkins: [2.277.1](http://mirrors.jenkins.io/war-stable/2.277.1)**
-- 移除apiv1的相关配置
-- 删除' isUploadPgyer '构建参数
-- 删除' uploadPgyerTimeout '构建参数
-- 删除' buildName '构建参数
-- 添加' buildType '构建参数(必填项)
-- api变化
-- 升级Gson 2.9.0
-- 升级OkHttp3 4.10.0
-- 优化代码以提高稳定性
+## 配置即代码（Configuration as Code）
 
+```yaml
+unclassified:
+  pgyer:
+    credentialsId: pgyer-api-key
+```
 
-版本 1.34(2020-08-15)
+## 从 2.x 升级
 
-- **最低兼容Jenkins: [2.164.1](http://mirrors.jenkins.io/war-stable/2.164.1)**
-- 添加 `isUploadPgyer` 构建参数
-- 添加 `uploadPgyerTimeout` 构建参数
-- 升级蒲公英API，添加 `channelShortcut` 参数
-- `installType` 默认值设置为1
-- 优化参数校验
-- 升级Gson 2.8.6
-- 升级Ant 1.10.8
-- 升级OkHttp3 3.14.9
-- 优化代码，提升稳定性
+用 2.x 配置的任务无需修改即可继续使用，原来设置的环境变量名、读取的 `isUploadPgyer` 和 `uploadPgyerTimeout`
+变量都保持不变。变化如下：
 
-版本 1.33(2019-09-07)
+- 在 agent 上构建的任务可以正常上传了：现在会在 agent 上读取并上传文件。
+- 插件最多等待 10 分钟让蒲公英发布版本，而不是原来的约 15 秒。
+- 2.x 任务里直接填写的 API Key 仍然可用，但已标记为弃用。请改存为“Secret text”凭据，并在任务中选择它。
+- Pipeline 任务请使用新的 `pgyerUpload` 步骤。
 
-- 修复[SECURITY-1044](https://issues.jenkins-ci.org/browse/SECURITY-1044)
-- 升级Gson 2.8.5
+## 常见问题
 
-版本 1.31(2018-05-07)
+| 错误 | 处理方法 |
+|---|---|
+| `1001`、`1002` | API Key 为空或不正确，请在 <https://www.pgyer.com/account/api> 核对。 |
+| `1003` | 子账号不能使用 API，请使用主账号的 API Key。 |
+| `1019` | 请先在 <https://www.pgyer.com/account/certification> 完成实名认证。 |
+| `1020` | 该账号已被禁止上传，请联系蒲公英客服。 |
+| `1022` | 账号存储空间已满或文件过大，请清理空间或升级套餐。 |
+| `等待 600 秒后蒲公英仍在处理` | 上传已完成，但发布时间超过了 `processingTimeout`。版本之后可能仍会出现在蒲公英应用列表中；如果经常出现，可以调大等待时间。 |
+| `所有蒲公英 API 服务器都无法连接` | agent 无法访问 `www.pgyer.com`、`www.xcxwo.com` 和 `www.pgyerapp.com`。请检查 agent 的网络，以及“系统管理 » 系统配置 » HTTP 代理配置”。 |
 
-- 升级Gson 2.8.4
-- 优化上传日志
-- 更换readme.md图片地址
+上传会使用 Jenkins 中配置的代理。通过需要账号密码的代理访问 HTTPS 时，Java 默认不发送 Basic 认证信息，需要在
+agent 的 JVM 启动参数中加上 `-Djdk.http.auth.tunneling.disabledSchemes=""`。
 
-版本 1.30(2018-04-16）
+## 问题反馈
 
-- 移除Jsoup，并引入okhttp作为网络库
-- 增加文件上传进度
-- 增加蒲公英[APIV2](https://www.pgyer.com/doc/view/api#uploadApp)
+请在 <https://github.com/jenkinsci/upload-pgyer-plugin/issues> 提交问题和建议。
+
+## 许可证
+
+[MIT](LICENSE)

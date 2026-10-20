@@ -28,7 +28,7 @@ public class PgyerBuildAction implements Action {
     public String getVersion() {
         String version = info.getOrDefault("buildVersion", "");
         String build = info.getOrDefault("buildBuildVersion", "");
-        return build.isEmpty() ? version : version + " (build " + build + ")";
+        return build.isEmpty() ? version : Messages.PgyerBuildAction_VersionWithBuild(version, build);
     }
 
     public String getDownloadUrl() {

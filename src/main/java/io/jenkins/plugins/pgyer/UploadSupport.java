@@ -43,11 +43,11 @@ public final class UploadSupport {
             throws IOException, InterruptedException {
         Result result = run.getResult();
         if (result != null && result.isWorseThan(Result.UNSTABLE)) {
-            listener.getLogger().println("[PGYER] The build " + result + ", so nothing was uploaded.");
+            listener.getLogger().println(Messages.Log_SkipFailedBuild(result.toString()));
             return;
         }
         if ("false".equalsIgnoreCase(env.get("isUploadPgyer", "true").trim())) {
-            listener.getLogger().println("[PGYER] isUploadPgyer is false, so nothing was uploaded.");
+            listener.getLogger().println(Messages.Log_SkipDisabled());
             return;
         }
         UploadRequest request = new UploadRequest();
@@ -87,19 +87,19 @@ public final class UploadSupport {
 
     public static ListBoxModel buildTypeItems() {
         ListBoxModel items = new ListBoxModel();
-        items.add("Detect from the file extension", "");
-        items.add("Android (.apk)", "android");
-        items.add("iOS (.ipa)", "ios");
-        items.add("HarmonyOS (.hap)", "harmony");
+        items.add(Messages.BuildType_Detect(), "");
+        items.add(Messages.BuildType_Android(), "android");
+        items.add(Messages.BuildType_Ios(), "ios");
+        items.add(Messages.BuildType_Harmony(), "harmony");
         return items;
     }
 
     public static ListBoxModel installTypeItems() {
         ListBoxModel items = new ListBoxModel();
-        items.add("Keep the app's current setting", "");
-        items.add("Public", "1");
-        items.add("Password", "2");
-        items.add("Invitation only", "3");
+        items.add(Messages.InstallType_Keep(), "");
+        items.add(Messages.InstallType_Public(), "1");
+        items.add(Messages.InstallType_Password(), "2");
+        items.add(Messages.InstallType_Invitation(), "3");
         return items;
     }
 }
