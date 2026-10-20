@@ -39,7 +39,6 @@
     <!-- 2.479 is the oldest LTS line the current parent POM supports (Java 17). -->
     <jenkins.baseline>2.479</jenkins.baseline>
     <jenkins.version>${jenkins.baseline}.3</jenkins.version>
-    <spotless.check.skip>false</spotless.check.skip>
   </properties>
 
   <dependencyManagement>
