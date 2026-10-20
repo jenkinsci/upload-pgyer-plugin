@@ -62,7 +62,7 @@ final class PgyerUploader {
         }
         options.setUploadTimeout(uploadTimeout(env));
 
-        log.println("[PGYER] Uploading " + file.getRemote() + " as a " + buildType + " build.");
+        log.println("[PGYER] Uploading " + file.getRemote() + " (" + buildType + ")");
         Map<String, String> result = file.act(new UploadCallable(global.apiServers(), proxy(), options, listener));
 
         addLinks(result, global.webServer());
