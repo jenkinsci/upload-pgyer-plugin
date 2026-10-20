@@ -12,7 +12,7 @@
   <!-- groupId and artifactId are fixed by the existing plugin ID and release permissions. -->
   <groupId>ren.helloworld</groupId>
   <artifactId>upload-pgyer</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>${revision}.${changelist}</version>
   <packaging>hpi</packaging>
   <name>Upload to PGYER</name>
   <description>Upload Android, iOS and HarmonyOS builds to PGYER (pgyer.com) for beta distribution.</description>
@@ -33,8 +33,8 @@
   </scm>
 
   <properties>
-    <revision>3.0</revision>
-    <changelist>-SNAPSHOT</changelist>
+    <revision>3</revision>
+    <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/upload-pgyer-plugin</gitHubRepo>
     <!-- 2.479 is the oldest LTS line the current parent POM supports (Java 17). -->
     <jenkins.baseline>2.479</jenkins.baseline>
