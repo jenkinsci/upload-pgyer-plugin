@@ -84,7 +84,7 @@ class PgyerClientTest {
         assertThat(token, hasEntry("buildInstallDate", "1"));
         assertThat(token, hasEntry("buildInstallStartDate", "2026-11-01"));
         assertThat(token, hasEntry("buildInstallEndDate", "2026-11-30"));
-        assertThat(token, hasEntry("oversea", "0"));
+        assertThat(token, hasEntry("oversea", "2"));
         String upload = pgyer.uploads.get(0);
         assertThat(upload, containsString("name=\"signature\"\r\n\r\nsig\r\n"));
         assertThat(upload, containsString("name=\"x-cos-meta-file-name\"\r\n\r\napp-release.apk\r\n"));
@@ -101,6 +101,16 @@ class PgyerClientTest {
         client(pgyer.url()).upload(apk, options);
 
         assertThat(pgyer.userAgents.get(0), startsWith("upload-pgyer-jenkins/3.1 Jenkins/2.479.3 Java/"));
+    }
+
+    @Test
+    void asksForOverseasAcceleration() throws Exception {
+        UploadOptions options = options();
+        options.setOversea(true);
+
+        client(pgyer.url()).upload(apk, options);
+
+        assertThat(pgyer.tokenRequests.get(0), hasEntry("oversea", "1"));
     }
 
     @Test

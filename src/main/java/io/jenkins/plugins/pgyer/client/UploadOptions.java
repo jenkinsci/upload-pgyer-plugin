@@ -132,7 +132,8 @@ public class UploadOptions implements Serializable {
         }
         putIfSet(form, "buildChannelShortcut", channelShortcut);
         if (oversea != null) {
-            form.put("oversea", oversea ? "1" : "0");
+            // 1 = overseas, 2 = mainland China; any other value makes the server choose by IP address.
+            form.put("oversea", oversea ? "1" : "2");
         }
         return form;
     }
