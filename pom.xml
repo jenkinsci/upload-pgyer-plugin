@@ -44,10 +44,14 @@
 
   <dependencyManagement>
     <dependencies>
+      <!-- The BOM sets the minimum versions of the plugins this plugin depends on. The first bom-2.479.x
+           keeps them at the versions a 2.479 controller already has. A later BOM would require newer
+           credentials, which the update center can't install on 2.479.x: it only offers a credentials
+           release that needs Jenkins 2.504.3. Dependabot leaves the BOM alone (.github/dependabot.yml). -->
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>5054.v620b_5d2b_d5e6</version>
+        <version>3482.vc10d4f6da_28a_</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -56,12 +60,12 @@
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcprov-jdk18on</artifactId>
-        <version>1.80</version>
+        <version>1.78.1</version>
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcutil-jdk18on</artifactId>
-        <version>1.80</version>
+        <version>1.78.1</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

@@ -100,6 +100,10 @@ unclassified:
 
 ## 从 2.x 升级
 
+请在“系统管理 > 插件管理”中升级。依赖的插件版本过低时，Jenkins 会一起升级它们。不要手动安装 `.hpi`
+文件：这样 Jenkins 不会升级依赖，启动时会报 `Update required: ...`。遇到这个提示时，在插件管理中升级提示里
+列出的插件；如果插件管理提示其中某个插件需要更新版本的 Jenkins，请先升级 Jenkins。
+
 用 2.x 配置的任务无需修改即可继续使用，原来设置的环境变量名、读取的 `isUploadPgyer` 和 `uploadPgyerTimeout`
 变量都保持不变。变化如下：
 

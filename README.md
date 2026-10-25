@@ -104,6 +104,11 @@ unclassified:
 
 ## Upgrading from 2.x
 
+Upgrade from *Manage Jenkins > Plugins*, which also updates the plugins this one depends on if they are too old.
+Don't install the `.hpi` file by hand: Jenkins then doesn't update the dependencies, and reports
+`Update required: ...` when it starts. If you see that message, update the plugins it lists from the plugin
+manager. If the plugin manager says that one of them needs a newer version of Jenkins, upgrade Jenkins first.
+
 Jobs configured with 2.x keep working without changes, including the environment variables they set and the
 `isUploadPgyer` and `uploadPgyerTimeout` variables they read. What changes:
 

@@ -5,6 +5,11 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    ignore:
+      # The BOM sets the minimum versions of the plugins this plugin depends on; see pom.xml.
+      - dependency-name: "io.jenkins.tools.bom:*"
+      # Pinned to the versions that the BOM's bouncycastle-api ships.
+      - dependency-name: "org.bouncycastle:*"
   - package-ecosystem: github-actions
     directory: /
     schedule:
